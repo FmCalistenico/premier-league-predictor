@@ -1,0 +1,176 @@
+# Premier League Predictor Configuration
+
+project:
+  name: premier-league-predictor
+  version: 0.1.0
+  description: Machine Learning system for predicting Premier League match outcomes
+  random_seed: 42
+
+paths:
+  data:
+    raw: ./data/raw
+    processed: ./data/processed
+    final: ./data/final
+  models: ./models
+  logs: ./logs
+  dashboards: ./dashboards
+  notebooks: ./notebooks
+
+data:
+  train_test_split: 0.2
+  validation_split: 0.1
+  cv_folds: 5
+  stratify: true
+
+  # Data sources
+  sources:
+    - football_data_api
+    - sportmonks_api
+    - manual_upload
+
+  # Features to use
+  feature_groups:
+    basic:
+      - home_team
+      - away_team
+      - match_date
+      - venue
+    form:
+      - last_5_matches
+      - goals_scored_avg
+      - goals_conceded_avg
+      - points_last_10
+    head_to_head:
+      - h2h_wins
+      - h2h_draws
+      - h2h_losses
+    advanced:
+      - possession_avg
+      - shots_on_target_avg
+      - pass_accuracy
+      - injuries_count
+
+preprocessing:
+  missing_values:
+    strategy: iterative  # Options: drop, mean, median, iterative
+    threshold: 0.3  # Drop columns with more than 30% missing
+
+  outliers:
+    method: iqr  # Options: iqr, zscore, isolation_forest
+    threshold: 3
+
+  scaling:
+    method: standard  # Options: standard, minmax, robust
+    features:
+      - numerical
+
+  encoding:
+    categorical:
+      method: onehot  # Options: onehot, label, target
+
+models:
+  # Models to train
+  algorithms:
+    logistic_regression:
+      enabled: true
+      params:
+        C: 1.0
+        max_iter: 1000
+        solver: lbfgs
+
+    random_forest:
+      enabled: true
+      params:
+        n_estimators: 100
+        max_depth: 10
+        min_samples_split: 2
+        random_state: 42
+
+    xgboost:
+      enabled: true
+      params:
+        n_estimators: 100
+        learning_rate: 0.1
+        max_depth: 6
+        subsample: 0.8
+        colsample_bytree: 0.8
+
+    lightgbm:
+      enabled: true
+      params:
+        n_estimators: 100
+        learning_rate: 0.1
+        num_leaves: 31
+        max_depth: -1
+
+    neural_network:
+      enabled: false
+      params:
+        hidden_layers: [128, 64, 32]
+        activation: relu
+        optimizer: adam
+        epochs: 50
+        batch_size: 32
+
+training:
+  metric: accuracy  # Primary metric
+  additional_metrics:
+    - precision
+    - recall
+    - f1_score
+    - roc_auc
+
+  cross_validation:
+    enabled: true
+    n_splits: 5
+    shuffle: true
+
+  hyperparameter_tuning:
+    enabled: false
+    method: optuna  # Options: grid, random, optuna
+    n_trials: 100
+    timeout: 3600  # seconds
+
+evaluation:
+  metrics:
+    - accuracy
+    - precision
+    - recall
+    - f1_score
+    - roc_auc
+    - log_loss
+
+  threshold: 0.5
+
+  visualization:
+    - confusion_matrix
+    - roc_curve
+    - precision_recall_curve
+    - feature_importance
+
+prediction:
+  output_format: json  # Options: json, csv, pickle
+  confidence_threshold: 0.7
+  save_predictions: true
+
+monitoring:
+  enabled: true
+  metrics_tracking: true
+  data_drift_detection: true
+  model_performance_tracking: true
+
+  alerts:
+    performance_degradation_threshold: 0.05
+    data_drift_threshold: 0.1
+
+api:
+  host: 0.0.0.0
+  port: 8000
+  debug: false
+  workers: 4
+  reload: false
+
+dashboard:
+  enabled: true
+  port: 8501
+  theme: dark

@@ -1,0 +1,160 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+*.ipynb
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Environment variables
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# Data Science Specific
+# Data files
+data/raw/*
+data/processed/*
+data/final/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/final/.gitkeep
+
+# Model files
+models/*.pkl
+models/*.h5
+models/*.pt
+models/*.joblib
+models/*.onnx
+!models/.gitkeep
+
+# Logs
+logs/*.log
+logs/*.txt
+!logs/.gitkeep
+
+# Jupyter Notebooks (keep structure, ignore output)
+notebooks/.ipynb_checkpoints
+
+# MLflow
+mlruns/
+mlartifacts/
+
+# Experimental results
+experiments/
+
+# Large files
+*.csv
+*.parquet
+*.feather
+*.h5
+*.hdf5
+*.db
+*.sqlite
+
+# OS specific
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE specific
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Documentation builds
+docs/_build/
+docs/_static/
+docs/_templates/
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+temp/
+tmp/
