@@ -42,6 +42,7 @@ class PoissonGoalsModel(LoggerMixin):
         self.away_model = None
         self.threshold = threshold
         self.feature_cols = None
+        self.scaler = None
 
         self.logger.info(f"PoissonGoalsModel initialized with threshold={threshold}")
 
@@ -76,11 +77,67 @@ class PoissonGoalsModel(LoggerMixin):
         self.logger.info(f"Training samples: {len(df)}")
         self.logger.info(f"Features: {len(feature_cols)}")
 
-        # Store feature columns
-        self.feature_cols = feature_cols.copy()
-
         # Prepare features
         X = df[feature_cols].copy()
+
+        # Ensure all features are numeric
+        non_numeric = X.select_dtypes(exclude=[np.number]).columns.tolist()
+        if non_numeric:
+            self.logger.warning(f"Dropping non-numeric columns: {non_numeric}")
+            X = X.select_dtypes(include=[np.number])
+            # Update feature_cols to match cleaned data
+            feature_cols = X.columns.tolist()
+            self.logger.info(f"Using {len(feature_cols)} numeric features")
+
+        # Clean data: handle missing and infinite values
+        # Fill missing values with 0
+        if X.isnull().any().any():
+            self.logger.warning("Filling missing values in features with 0")
+            X = X.fillna(0)
+
+        # Replace infinite values with 0
+        # Convert to numpy array for isinf check
+        X_values = X.values
+        if np.isinf(X_values).any():
+            self.logger.warning("Replacing infinite values in features with 0")
+            X = X.replace([np.inf, -np.inf], 0)
+
+        # Check for extreme values that could cause numerical issues
+        # Clip features to reasonable range to prevent overflow in Poisson GLM
+        X_values = X.values
+        extreme_mask = np.abs(X_values) > 1e6
+        if extreme_mask.any():
+            extreme_count = extreme_mask.sum()
+            self.logger.warning(f"Clipping {extreme_count} extreme values to ±1e6")
+            X = X.clip(-1e6, 1e6)
+
+        # Check for very small variance features (near-constant)
+        feature_std = X.std()
+        low_variance_features = feature_std[feature_std < 1e-10].index.tolist()
+        if low_variance_features:
+            self.logger.warning(f"Dropping {len(low_variance_features)} near-constant features")
+            X = X.drop(columns=low_variance_features)
+            feature_cols = X.columns.tolist()
+
+        # Store final feature columns (after cleaning/dropping)
+        self.feature_cols = feature_cols.copy()
+
+        # Normalize features to prevent numerical issues in GLM
+        # Use StandardScaler to ensure features are on similar scales
+        from sklearn.preprocessing import StandardScaler
+        self.scaler = StandardScaler()
+
+        # Fit and transform
+        X_scaled = self.scaler.fit_transform(X)
+        X = pd.DataFrame(X_scaled, columns=X.columns, index=X.index)
+
+        self.logger.info("Scaled features to prevent numerical issues")
+
+        # Final check: ensure no NaN or inf remain after scaling
+        X_values = X.values
+        if np.isnan(X_values).any() or np.isinf(X_values).any():
+            self.logger.error("Data still contains NaN or inf after cleaning and scaling")
+            raise ValueError("Features contain NaN or infinite values that could not be cleaned")
 
         # Add constant term for intercept
         X = sm.add_constant(X, has_constant='add')
@@ -89,27 +146,52 @@ class PoissonGoalsModel(LoggerMixin):
         y_home = df[target_home].values
         y_away = df[target_away].values
 
+        # Validate targets: statsmodels can fail with NaN/inf/negative endog in Poisson
+        y_mask = (
+            np.isfinite(y_home)
+            & np.isfinite(y_away)
+            & (y_home >= 0)
+            & (y_away >= 0)
+        )
+        if not y_mask.all():
+            dropped = int((~y_mask).sum())
+            self.logger.warning(
+                f"Dropping {dropped} rows with invalid targets (NaN/inf/negative) before GLM fit"
+            )
+            X = X.loc[X.index[y_mask]]
+            y_home = y_home[y_mask]
+            y_away = y_away[y_mask]
+
+        def _fit_poisson_glm(y: np.ndarray, exog: pd.DataFrame, label: str):
+            mod = sm.GLM(y, exog, family=Poisson())
+            try:
+                res = mod.fit(method='newton', maxiter=200, tol=1e-8)
+                if getattr(res, 'converged', True) is False:
+                    self.logger.warning(f"{label} model did not converge with IRLS/Newton; retrying with regularization")
+                    raise ValueError("non_converged")
+                return res
+            except Exception as e:
+                self.logger.warning(f"{label} model fit failed ({type(e).__name__}: {e}); using ridge regularization")
+                res = mod.fit_regularized(alpha=1e-6, L1_wt=0.0, maxiter=2000)
+                return res
+
         # Fit home goals model
         self.logger.info("Training home goals model...")
-        self.home_model = sm.GLM(
-            y_home,
-            X,
-            family=Poisson()
-        ).fit()
+        self.home_model = _fit_poisson_glm(y_home, X, "Home")
 
-        self.logger.info(f"Home model AIC: {self.home_model.aic:.2f}")
-        self.logger.info(f"Home model converged: {self.home_model.converged}")
+        home_aic = getattr(self.home_model, 'aic', None)
+        if home_aic is not None and np.isfinite(home_aic):
+            self.logger.info(f"Home model AIC: {home_aic:.2f}")
+        self.logger.info(f"Home model converged: {getattr(self.home_model, 'converged', True)}")
 
         # Fit away goals model
         self.logger.info("Training away goals model...")
-        self.away_model = sm.GLM(
-            y_away,
-            X,
-            family=Poisson()
-        ).fit()
+        self.away_model = _fit_poisson_glm(y_away, X, "Away")
 
-        self.logger.info(f"Away model AIC: {self.away_model.aic:.2f}")
-        self.logger.info(f"Away model converged: {self.away_model.converged}")
+        away_aic = getattr(self.away_model, 'aic', None)
+        if away_aic is not None and np.isfinite(away_aic):
+            self.logger.info(f"Away model AIC: {away_aic:.2f}")
+        self.logger.info(f"Away model converged: {getattr(self.away_model, 'converged', True)}")
 
         self.logger.info("Model training completed successfully")
 
@@ -136,11 +218,35 @@ class PoissonGoalsModel(LoggerMixin):
 
         # Prepare features
         X = df[self.feature_cols].copy()
+
+        # Ensure all features are numeric
+        X = X.select_dtypes(include=[np.number])
+
+        # Clean data: handle missing and infinite values
+        if X.isnull().any().any():
+            X = X.fillna(0)
+
+        # Replace infinite values with 0 (using numpy array to avoid dtype issues)
+        X_values = X.values
+        if np.isinf(X_values).any():
+            X = X.replace([np.inf, -np.inf], 0)
+
+        # Apply the same scaling used during training
+        if self.scaler is not None:
+            X_scaled = self.scaler.transform(X)
+            X = pd.DataFrame(X_scaled, columns=X.columns, index=X.index)
+
         X = sm.add_constant(X, has_constant='add')
 
         # Predict expected goals
         lambda_home = self.home_model.predict(X)
         lambda_away = self.away_model.predict(X)
+        
+        # Ensure predictions are valid (non-negative, finite)
+        lambda_home = np.maximum(lambda_home, 0.01)  # Minimum 0.01 to avoid issues
+        lambda_away = np.maximum(lambda_away, 0.01)
+        lambda_home = np.where(np.isfinite(lambda_home), lambda_home, 1.0)  # Replace NaN/inf with 1.0
+        lambda_away = np.where(np.isfinite(lambda_away), lambda_away, 1.0)
 
         return lambda_home, lambda_away
 
@@ -252,6 +358,19 @@ class PoissonGoalsModel(LoggerMixin):
             >>> proba[0]  # [0.35, 0.65] = [prob_under, prob_over]
         """
         prob_over, prob_under, _ = self.predict_over_under(df, threshold=self.threshold)
+
+        # Clean probabilities: ensure they are valid
+        prob_over = np.clip(prob_over, 0.0, 1.0)  # Clip to [0, 1]
+        prob_under = np.clip(prob_under, 0.0, 1.0)
+        
+        # Replace NaN or inf with 0.5 (neutral probability)
+        prob_over = np.where(np.isfinite(prob_over), prob_over, 0.5)
+        prob_under = np.where(np.isfinite(prob_under), prob_under, 0.5)
+        
+        # Ensure they sum to 1.0
+        total = prob_over + prob_under
+        prob_over = np.where(total > 0, prob_over / total, 0.5)
+        prob_under = np.where(total > 0, prob_under / total, 0.5)
 
         # Stack as [prob_under, prob_over] to match sklearn convention
         # where class 0 = under, class 1 = over

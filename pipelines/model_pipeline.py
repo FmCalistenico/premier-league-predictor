@@ -284,6 +284,19 @@ class ModelPipeline(LoggerMixin):
             # Get predictions
             y_true = df['over_2.5'].values
             y_pred_proba = model.predict_proba(df)[:, 1]
+            
+            # Clean predictions: remove NaN and inf
+            valid_mask = np.isfinite(y_pred_proba)
+            if not valid_mask.all():
+                invalid_count = (~valid_mask).sum()
+                self.logger.warning(f"Found {invalid_count} invalid predictions (NaN/inf), replacing with 0.5")
+                y_pred_proba = np.where(valid_mask, y_pred_proba, 0.5)
+                # Also filter out invalid targets if needed
+                y_true = y_true[valid_mask] if len(y_true) == len(valid_mask) else y_true
+                y_pred_proba = y_pred_proba[valid_mask] if len(y_pred_proba) == len(valid_mask) else y_pred_proba
+            
+            # Ensure probabilities are in valid range
+            y_pred_proba = np.clip(y_pred_proba, 0.0, 1.0)
 
             # Evaluate
             if save_plots:

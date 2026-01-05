@@ -158,3 +158,28 @@ docs/_templates/
 *.log
 temp/
 tmp/
+
+
+
+
+# Data & cache
+data/cache/
+data/predictions/
+
+# Models outputs
+models/analysis/
+models/plots/
+models/results/
+models/production/
+models/*latest*.json
+
+# Env
+.env
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+
+# Streamlit
+.streamlit/

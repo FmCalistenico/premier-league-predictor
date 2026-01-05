@@ -16,9 +16,9 @@ from sklearn.metrics import (
     roc_auc_score,
     roc_curve,
     precision_recall_fscore_support,
-    confusion_matrix,
-    calibration_curve
+    confusion_matrix
 )
+from sklearn.calibration import calibration_curve
 from sklearn.model_selection import TimeSeriesSplit
 
 from ..utils import LoggerMixin
