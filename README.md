@@ -77,13 +77,53 @@ pytest tests/
 
 ## Features
 
-- Data collection from multiple sources
-- Advanced feature engineering
-- Multiple ML algorithms (Random Forest, XGBoost, LightGBM)
-- Hyperparameter optimization
-- Model evaluation and monitoring
-- API for predictions
-- Interactive dashboard
+- ✅ Data collection from multiple sources (CSV, API)
+- ✅ Advanced feature engineering (V1 and V2)
+  - **V2 Enhanced**: Bias reduction, ratio features, momentum, volatility
+- ✅ Poisson regression model with analytical probability calculation
+- ✅ Time series cross-validation (respects temporal order)
+- ✅ Model evaluation with calibration metrics
+- ✅ Automatic feature validation (VIF, correlations)
+- ✅ Threshold optimization for balanced predictions
+- ✅ Complete ML pipelines (data + model)
+
+## Quick Start
+
+See [QUICKSTART.md](QUICKSTART.md) for detailed quick start guide.
+
+### Train Model with Enhanced Features (V2)
+
+```bash
+# Complete pipeline with V2 features
+python scripts/train_model_v2.py --validate-features
+
+# Migrate from V1 to V2
+python scripts/migrate_to_v2.py
+
+# Compare V1 vs V2 results
+python scripts/compare_models.py
+```
+
+### Analyze and Fix Model Bias
+
+```bash
+# Optimize prediction threshold
+python scripts/optimize_threshold.py --metric balanced_accuracy
+
+# Analyze feature importance and correlations
+python scripts/analyze_features.py
+
+# View solutions for model bias
+cat SOLUTIONS_MODEL_BIAS.md
+```
+
+## Documentation
+
+- **[QUICKSTART.md](QUICKSTART.md)** - Get started in 5 minutes
+- **[SOLUTIONS_MODEL_BIAS.md](SOLUTIONS_MODEL_BIAS.md)** - Fix Over/Under prediction bias
+- **[FEATURE_ENGINEERING_COMPARISON.md](FEATURE_ENGINEERING_COMPARISON.md)** - V1 vs V2 features
+- **[TROUBLESHOOTING.md](TROUBLESHOOTING.md)** - Common issues and solutions
+- **Module READMEs** - See individual src/ module documentation
 
 ## Contributing
 
