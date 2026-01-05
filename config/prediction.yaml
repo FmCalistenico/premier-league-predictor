@@ -1,0 +1,96 @@
+# ================================================================
+# PREMIER LEAGUE PREDICTION SYSTEM - CONFIGURATION
+# ================================================================
+
+# ----------------------------------------------------------------
+# PREDICTION MODE
+# ----------------------------------------------------------------
+prediction:
+  # Mode: SIMULATION (synthetic fixtures) or REAL_FIXTURES (API)
+  mode: SIMULATION  # SIMULATION | REAL_FIXTURES
+
+  # Logging
+  log_level: INFO
+  verbose: true
+
+# ----------------------------------------------------------------
+# SIMULATION MODE CONFIGURATION
+# ----------------------------------------------------------------
+simulation:
+  enabled: true
+
+  # Generation settings
+  num_gameweeks: 3
+  random_seed: 42
+
+  # Season
+  season: "2025/26"
+
+  # UI settings
+  ui:
+    show_warning: true
+    warning_level: "high"
+    warning_message: |
+      ⚠️ SIMULATION MODE
+
+      Fixtures generados sintéticamente desde datos históricos.
+      NO representan el calendario oficial de Premier League.
+
+      Útil para: Experimentación, backtesting, análisis de modelo.
+
+# ----------------------------------------------------------------
+# REAL FIXTURES MODE CONFIGURATION
+# ----------------------------------------------------------------
+real_fixtures:
+  enabled: true
+
+  # API Configuration
+  api:
+    provider: "api-football"  # api-football | football-data-org
+
+    # API-Football (API-Sports) settings
+    api_football:
+      base_url: "https://v3.football.api-sports.io"
+      league_id: 39  # Premier League
+      season: 2024  # Current season 2024-2025
+      timeout_seconds: 10
+      rate_limit_per_day: 100  # Free tier
+
+  # Cache settings
+  cache:
+    enabled: true
+    ttl_hours: 24
+    storage: "memory"  # memory | redis | disk
+
+  # Validation rules
+  validation:
+    future_only: true  # Only future fixtures
+    validate_teams: true  # Check teams exist in historical data
+    max_days_ahead: 30  # Maximum days to fetch ahead
+
+  # UI settings
+  ui:
+    show_official_badge: true
+    badge_text: "✅ Official Premier League Fixtures"
+    show_metadata: true
+    show_api_info: true
+
+# ----------------------------------------------------------------
+# FEATURE ENGINEERING (Mode-Agnostic)
+# ----------------------------------------------------------------
+features:
+  version: "v2"
+  num_features: 78
+  rolling_window: 5
+  include_h2h: true
+
+# ----------------------------------------------------------------
+# MODEL CONFIGURATION (Mode-Agnostic)
+# ----------------------------------------------------------------
+model:
+  type: "poisson_balanced"
+  path: "models/production/best_model.pkl"
+  threshold: 0.58
+  confidence_threshold: 0.65
+  drift_check: true
+  drift_threshold: 0.15

@@ -1,0 +1,20 @@
+app:
+  title: "Model Bias Monitor"
+  default_threshold: 0.5
+  auto_refresh_minutes: 0
+
+data:
+  # Optional default paths; you can override in the UI
+  default_dataset_path: "./data/processed/transformed_csv_*.csv"
+  default_reference_train_path: "./data/final/training_data_latest.parquet"
+
+models:
+  production_dir: "./models/production"
+  default_model_file: "best_model.pkl"
+  baseline_metrics_csv: "./models/results/retrain_comparison.csv"
+
+ui:
+  max_rows_preview: 2000
+  temporal_aggregation: "W"  # pandas offset alias, e.g. 'W' weekly, 'M' monthly
+  alert_specificity_threshold: 0.45
+  alert_last_n: 10
